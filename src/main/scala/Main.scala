@@ -97,7 +97,7 @@ object Main {
   def printExample(columns: Int): Unit = {
     println("\n" + columns + " columns")
     println( List.fill(columns)('-').mkString )
-    println( Render(example,columns-3).toText )
+    println( Render(example,columns-3).asString )
   }
 
   def main(args: Array[String]): Unit = {
