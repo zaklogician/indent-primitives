@@ -8,13 +8,13 @@ import org.scalacheck.Gen._
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary._
 
-import indentor.Indentable;
-import indentor.Indented;
+import indentor.LayoutSpec;
+import indentor.Layout;
 import indentor.Render;
 
 import indentor.test.Helper._;
 
-object TestIndentable extends Properties("Indentable") {
+object TestLayoutSpec extends Properties("LayoutSpec") {
 
   //////////////////////////////////////////////////////////////////////////////
   // TEST CONFIGURATION:
@@ -41,65 +41,65 @@ object TestIndentable extends Properties("Indentable") {
   //////////////////////////////////////////////////////////////////////////////
   // GENERATORS:
 
-  val rawBase: Gen[Indentable] =
-    Gen.oneOf( Indentable.Empty, Indentable.SoftBreak, Indentable.HardBreak)
+  val rawBase: Gen[LayoutSpec] =
+    Gen.oneOf( LayoutSpec.Empty, LayoutSpec.SoftBreak, LayoutSpec.HardBreak)
 
   val genSafeLine: Gen[String] = for {
     str <- Gen.listOf(Gen.oneOf(allowedChars))
   } yield str.mkString("")
 
-  val rawLiteral: Gen[Indentable] = for {
+  val rawLiteral: Gen[LayoutSpec] = for {
     str <- if (fullUnicode) arbitrary[String] else genSafeLine
-  } yield Indentable.Text(str take 80)
+  } yield LayoutSpec.Text(str take 80)
 
-  def rawLevel(depth: Int): Gen[Indentable] = for {
+  def rawLevel(depth: Int): Gen[LayoutSpec] = for {
     level <- Gen.choose(-5,5)
-    body <- rawIndentable(depth-1)
-    ctor <- Gen.oneOf(Indentable.AddLevel,Indentable.SetLevel)
+    body <- rawLayoutSpec(depth-1)
+    ctor <- Gen.oneOf(LayoutSpec.AddLevel,LayoutSpec.SetLevel)
   } yield ctor(level,body)
 
-  def rawConcat(depth: Int): Gen[Indentable] = for {
-    left <- rawIndentable(depth-1)
-    right <- rawIndentable(depth-1)
+  def rawConcat(depth: Int): Gen[LayoutSpec] = for {
+    left <- rawLayoutSpec(depth-1)
+    right <- rawLayoutSpec(depth-1)
   } yield (left ++ right)
 
-  def rawLeft(depth: Int): Gen[Indentable] = for {
-    left <- rawIndentable(depth-1)
-    right <- rawIndentable(depth-1)
+  def rawLeft(depth: Int): Gen[LayoutSpec] = for {
+    left <- rawLayoutSpec(depth-1)
+    right <- rawLayoutSpec(depth-1)
   } yield (left << right)
 
-  def rawRight(depth: Int): Gen[Indentable] = for {
-    left <- rawIndentable(depth-1)
-    right <- rawIndentable(depth-1)
+  def rawRight(depth: Int): Gen[LayoutSpec] = for {
+    left <- rawLayoutSpec(depth-1)
+    right <- rawLayoutSpec(depth-1)
   } yield (left >> right)
 
-  def rawIndentable(depth: Int): Gen[Indentable] =
+  def rawLayoutSpec(depth: Int): Gen[LayoutSpec] =
     if (depth < 0) Gen.oneOf(rawBase, rawLiteral)
     else Gen.oneOf( rawBase, rawLiteral
                   , rawLevel(depth), rawConcat(depth), rawLeft(depth), rawRight(depth)
                   )
   
-  def genIndentable: Gen[Indentable] = for {
-    i <- rawIndentable(8)
+  def genLayoutSpec: Gen[LayoutSpec] = for {
+    i <- rawLayoutSpec(8)
   } yield uniqueLiterals(i)
-  implicit val arbIndentable: Arbitrary[Indentable] = Arbitrary(genIndentable)
+  implicit val arbLayoutSpec: Arbitrary[LayoutSpec] = Arbitrary(genLayoutSpec)
 
   //////////////////////////////////////////////////////////////////////////////
   // PROPERTIES:
 
   property("Text removes all newlines") = Prop.forAll { (i: String) =>
-    literals( Indentable.Text(i) ) forall { l => !l.literal.contains("\n") }
+    literals( LayoutSpec.Text(i) ) forall { l => !l.literal.contains("\n") }
   }
 
   property("Text renders as itself") = Prop.forAll { (i: String) =>
-    render( Indentable.Text(i) ).asString == i
+    render( LayoutSpec.Text(i) ).asString == i
   }
   
   property("Empty renders as the empty string") = Prop {
-    render( Indentable.Empty ).asString == ""
+    render( LayoutSpec.Empty ).asString == ""
   }
 
-  property("++ satisfies semantics") = Prop.forAll { (left: Indentable, right: Indentable) =>
+  property("++ satisfies semantics") = Prop.forAll { (left: LayoutSpec, right: LayoutSpec) =>
     // we ensure unique prefixes
     val ll = addPrefix(left,"L")
     val rr = addPrefix(right,"R")
@@ -113,11 +113,11 @@ object TestIndentable extends Properties("Indentable") {
     }
   }
 
-  property("++ associative") = Prop.forAll { (a: Indentable, b: Indentable, c: Indentable) =>
+  property("++ associative") = Prop.forAll { (a: LayoutSpec, b: LayoutSpec, c: LayoutSpec) =>
     render(a ++ (b ++ c)).toString == render((a ++ b) ++ c).toString
   }
   
-  property(">> satisfies forward semantics") = Prop.forAll { (left: Indentable, right: Indentable) =>
+  property(">> satisfies forward semantics") = Prop.forAll { (left: LayoutSpec, right: LayoutSpec) =>
     // we ensure unique prefixes
     val ll = addPrefix( removeNonforward(left),"L")
     val rr = addPrefix( removeNonforward(right), "R")
@@ -132,7 +132,7 @@ object TestIndentable extends Properties("Indentable") {
     }
   }
 
-  property("<< satisfies forward semantics") = Prop.forAll { (left: Indentable, right: Indentable) =>
+  property("<< satisfies forward semantics") = Prop.forAll { (left: LayoutSpec, right: LayoutSpec) =>
     // we ensure unique prefixes
     val ll = addPrefix( removeNonforward(left),"L")
     val rr = addPrefix( removeNonforward(right), "R")
@@ -147,7 +147,7 @@ object TestIndentable extends Properties("Indentable") {
     } yield (l toLeftOf r)) getOrElse true
   }
 
-  property("equality reflexive") = Prop.forAll { (i: Indentable) =>
+  property("equality reflexive") = Prop.forAll { (i: LayoutSpec) =>
     i == i
   }
 

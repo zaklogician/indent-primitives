@@ -1,6 +1,6 @@
 package indentor;
 
-import indentor.Indentable._
+import indentor.LayoutSpec._
 
 object Main {
 
@@ -17,7 +17,7 @@ object Main {
    * ```
    */
 
-  val command1: Indentable = // Isabelle commands start with a hard break
+  val command1: LayoutSpec = // Isabelle commands start with a hard break
     HardBreak ++ (
       Literal("apply") >>| (
         Literal("(") ++ (
@@ -36,7 +36,7 @@ object Main {
       )
     )
 
-  val command2: Indentable =
+  val command2: LayoutSpec =
     HardBreak ++ (
       Literal("apply") >>| (
         Literal("(") ++ (
@@ -49,19 +49,19 @@ object Main {
       )
     )
 
-  val comment1: Indentable =
+  val comment1: LayoutSpec =
     HardBreak ++ (
       Literal("(* comment aligns with next line *)")
     )
 
-  val command3: Indentable =
+  val command3: LayoutSpec =
     HardBreak ++ (
       Literal("apply") >>| (
         Literal("simp")
       )
     )
 
-  val lookup1: Indentable =
+  val lookup1: LayoutSpec =
     SetLevel(0,
       HardBreak ++ (
         Literal("find_theorems") >>| (
@@ -70,14 +70,14 @@ object Main {
       )
     )
 
-  val command4: Indentable =
+  val command4: LayoutSpec =
     HardBreak ++ (
       Literal("apply") >>| (
         Literal("arith")
       )
     )
 
-  val example: Indentable =
+  val example: LayoutSpec =
     command1 ++ AddLevel(0,
       command2 ++ AddLevel(1,
         comment1 << (

@@ -1,10 +1,10 @@
 package indentor;
 
 
-/** An object with members for rendering implicit-layout instances of `indentor.Indentable`
-  * into explicit-layout instances of `indentor.Indented`.
+/** An object with members for rendering implicit-layout instances of `indentor.LayoutSpec`
+  * into explicit-layout instances of `indentor.Layout`.
   *
-  * Instances of the `indentor.Indentable` trait do not determine a single, unique layout
+  * Instances of the `indentor.LayoutSpec` trait do not determine a single, unique layout
   * of their contents. They merely express a specification that any acceptable layout of their
   * contents must satisfy.
   *
@@ -15,42 +15,42 @@ package indentor;
   */
 object Render {
 
-  case class State(currentLevel: Int, target: Indentable)
+  case class State(currentLevel: Int, target: LayoutSpec)
   type Pipeline = List[State]
 
-  def render(width: Int, currentColumn: Int, pipeline: Pipeline): Indented = pipeline match {
-    case Nil => Indented.Empty
+  def render(width: Int, currentColumn: Int, pipeline: Pipeline): Layout = pipeline match {
+    case Nil => Layout.Empty
     case (State(currentLevel,target) :: rest) => target match {
-      case Indentable.Empty => Indented.Empty
-      case Indentable.SoftBreak => {
+      case LayoutSpec.Empty => Layout.Empty
+      case LayoutSpec.SoftBreak => {
         if (currentColumn > width)
-           render(width, currentColumn, State(currentLevel,Indentable.HardBreak) :: rest)
+           render(width, currentColumn, State(currentLevel,LayoutSpec.HardBreak) :: rest)
         else render(width, currentColumn, rest)
       }
-      case Indentable.HardBreak => {
-        Indented.Newline(currentLevel, render(width, currentLevel, rest))
+      case LayoutSpec.HardBreak => {
+        Layout.Newline(currentLevel, render(width, currentLevel, rest))
       }
-      case Indentable.Literal(text) => {
-        Indented.Literal(text, render(width, currentColumn + text.length, rest))
+      case LayoutSpec.Literal(text) => {
+        Layout.Literal(text, render(width, currentColumn + text.length, rest))
       }
-      case Indentable.AddLevel(level, body) => {
+      case LayoutSpec.AddLevel(level, body) => {
         render(width, currentColumn, State(currentLevel + level, body) :: rest)
       }
-      case Indentable.SetLevel(level, body) => {
+      case LayoutSpec.SetLevel(level, body) => {
         render(width, currentColumn, State(level, body) :: rest)
       }
-      case Indentable.Concat(left, right) => {
+      case LayoutSpec.Concat(left, right) => {
         render(width, currentColumn, State(currentLevel,left) :: State(currentLevel,right) :: rest )
       }
-      case Indentable.WithCurrentColumn(body) => {
+      case LayoutSpec.WithCurrentColumn(body) => {
         render(width, currentColumn, State(currentLevel, body(currentColumn)) :: rest)
       }
-      case Indentable.WithCurrentLevel(body) => {
+      case LayoutSpec.WithCurrentLevel(body) => {
         render(width, currentColumn, State(currentLevel, body(currentLevel)) :: rest)
       }
-      case Indentable.StrainToRightBegin(left, right) => {
+      case LayoutSpec.StrainToRightBegin(left, right) => {
         render(width, currentColumn, State(currentLevel, right) :: rest) match {
-          case Indented.Newline(level,_) => render(
+          case Layout.Newline(level,_) => render(
             width,
             currentColumn,
             State(level, left) :: State(currentLevel, right) :: rest
@@ -65,14 +65,14 @@ object Render {
     } // end pipeline match
   } // end def render
 
-  /** Renders the given `Indentable`, rendering soft breaks as newlines whenever
+  /** Renders the given `LayoutSpec`, rendering soft breaks as newlines whenever
     * the length of the line exceeds the given `width`.
     */
-  def apply(target: Indentable, width: Int): Indented = render(width,0,List(State(0,target)))
+  def apply(target: LayoutSpec, width: Int): Layout = render(width,0,List(State(0,target)))
 
-  /** Renders the given `Indentable`, rendering soft breaks as newlines whenever
+  /** Renders the given `LayoutSpec`, rendering soft breaks as newlines whenever
     * the length of the line exceeds 80 characters.
     */
-  def apply(target: Indentable): Indented = render(80,0,List(State(0,target)))
+  def apply(target: LayoutSpec): Layout = render(80,0,List(State(0,target)))
 
 }
