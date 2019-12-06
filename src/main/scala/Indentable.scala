@@ -1,9 +1,5 @@
 package indentor;
 
-object TestObject {
-  def name: String = "TestObject"
-}
-
 sealed trait Indentable {
   def ++(that: Indentable) = Indentable.Concat(this,that)
 

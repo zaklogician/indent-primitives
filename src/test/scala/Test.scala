@@ -12,139 +12,41 @@ import indentor.Indentable;
 import indentor.Indented;
 import indentor.Render;
 
+import indentor.test.Helper._;
+
 object TestIndentable extends Properties("Indentable") {
 
-  // CONFIG //
+  //////////////////////////////////////////////////////////////////////////////
+  // TEST CONFIGURATION:
   
   /* If `fullUnicode` is set to true, we allow arbitrary Unicode sequences in our tests.
-   * These can be extremely weird, containing direction modifiers, etc. which provide
+   * These can be extremely weird, containing direction modifiers, etc. which may provide
    * spurious counterexamples to the semantics.
    */
   val fullUnicode: Boolean = false
 
+  /* If `fullUnicode` is set to false, we only allow the Unicode codepoints contained in
+   * the string `allowedChars`. These cover many basic mathematical symbols, along with
+   * many common ASCII characters.
+   */
   val allowedChars: String =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" +
-    "0123456789:;<=>?@[\\]^_`\"' \t\n" +
+    "0123456789:;<=>?@[\\]^_`\"' ()\n" +
     "∀∁∂∃∄∅∆∇∈∉∊∋∌∍∎∏∐∑−∓∔∕∖∗∘∙√∛∜∝∞∟" +
     "≠≡≢≣≤≥≦≧≨≩≪≫≬≭≮≯≰≱≲≳≴≵≶≷≸≹≺≻≼≽≾≿" +
     "⊀⊁⊂⊃⊄⊅⊆⊇⊈⊉⊊⊋⊌⊍⊎⊏⊐⊑⊒⊓⊔⊕⊖⊗⊘⊙⊚⊛⊜⊝⊞⊟" +
     "⊠⊡⊢⊣⊤⊥⊦⊧⊨⊩⊪⊫⊬⊭⊮⊯⊰⊱⊲⊳⊴⊵⊶⊷⊸⊹⊺⊻⊼⊽⊾⊿" +
     "⋀⋁⋂⋃⋄⋅⋆⋇⋈⋉⋊⋋⋌⋍⋎⋏⋐⋑⋒⋓⋔⋕⋖⋗⋘⋙⋚⋛⋜⋝⋞⋟"
 
-  // HELPER FUNCTIONS //
-
-  /* Adds prefixes to all literals, making sure that they are all unique. */
-  def addPrefix(i: Indentable, p: String): Indentable = i match {
-    case Indentable.Literal(text) =>
-      Indentable.Literal(p + text)
-    case Indentable.AddLevel(level, body) =>
-      Indentable.AddLevel(level, addPrefix(body, p))
-    case Indentable.SetLevel(level, body) =>
-      Indentable.SetLevel(level, addPrefix(body, p))
-    case Indentable.Concat(left, right) =>
-      Indentable.Concat(addPrefix(left, p + "l"), addPrefix(right, p + "r"))
-    case Indentable.WithCurrentColumn(body) =>
-      Indentable.WithCurrentColumn { c => addPrefix(body(c),p) }
-    case Indentable.WithCurrentLevel(body) =>
-      Indentable.WithCurrentLevel { l => addPrefix(body(l),p) }
-    case Indentable.StrainToRightBegin(left, right) =>
-      Indentable.StrainToRightBegin( addPrefix(left,p + "l"), addPrefix(right,p + "r") )
-    case _ => i
-  }
-
-  /* Adds prefixes to all literals, making sure they are all unique.
-   * Ignores literals under the scope of a SetLevel, a negative
-   * AddLevel block or under a <<.
-   */
-  def addPrefixNonstrain(i: Indentable, p: String): Indentable = i match {
-    case Indentable.Literal(text) =>
-      Indentable.Literal(p + text)
-    case Indentable.AddLevel(level, body) =>
-      Indentable.AddLevel(level, if (level >= 0) addPrefixNonstrain(body, p) else body)
-    case Indentable.Concat(left, right) =>
-      Indentable.Concat(addPrefixNonstrain(left, p + "l"), addPrefixNonstrain(right, p + "r"))
-    case Indentable.WithCurrentColumn(body) =>
-      Indentable.WithCurrentColumn { c => addPrefixNonstrain(body(c),p) }
-    case Indentable.WithCurrentLevel(body) =>
-      Indentable.WithCurrentLevel { l => addPrefixNonstrain(body(l),p) }
-    case _ => i
-  }
-  
-  /* Adds prefixes to all literals, making sure they are all unique.
-   * Ignores literals under the scope of a SetLevel or a negative
-   * AddLevel block.
-   */
-  def addPrefixNonneg(i: Indentable, p: String): Indentable = i match {
-    case Indentable.Literal(text) =>
-      Indentable.Literal(p + text)
-    case Indentable.AddLevel(level, body) =>
-      Indentable.AddLevel(level, if (level >= 0) addPrefixNonneg(body, p) else body)
-    case Indentable.Concat(left, right) =>
-      Indentable.Concat(addPrefixNonneg(left, p + "l"), addPrefixNonneg(right, p + "r"))
-    case Indentable.WithCurrentColumn(body) =>
-      Indentable.WithCurrentColumn { c => addPrefixNonneg(body(c),p) }
-    case Indentable.WithCurrentLevel(body) =>
-      Indentable.WithCurrentLevel { l => addPrefixNonneg(body(l),p) }
-    case Indentable.StrainToRightBegin(left, right) =>
-      Indentable.StrainToRightBegin( addPrefixNonneg(left,p + "l"), addPrefixNonneg(right,p + "r") )
-    case _ => i
-  }
-  
-  /* Adds prefixes to all literals, making sure they are all unique.
-   * Ignores literals under the scope of a SetLevel.
-   */
-  def addPrefixNonset(i: Indentable, p: String): Indentable = i match {
-    case Indentable.Literal(text) =>
-      Indentable.Literal(p + text)
-    case Indentable.AddLevel(level, body) =>
-      Indentable.AddLevel(level, addPrefixNonset(body, p))
-    case Indentable.Concat(left, right) =>
-      Indentable.Concat(addPrefixNonset(left, p + "l"), addPrefixNonset(right, p + "r"))
-    case Indentable.WithCurrentColumn(body) =>
-      Indentable.WithCurrentColumn { c => addPrefixNonset(body(c),p) }
-    case Indentable.WithCurrentLevel(body) =>
-      Indentable.WithCurrentLevel { l => addPrefixNonset(body(l),p) }
-    case Indentable.StrainToRightBegin(left, right) =>
-      Indentable.StrainToRightBegin( addPrefixNonset(left,p + "l"), addPrefixNonset(right,p + "r") )
-    case _ => i
-  }
-
-  case class LiteralStart(line: Int, column: Int, literal: String) {
-    def toRightOf(that: LiteralStart): Boolean =
-      this.column >= that.column
-
-    def toLeftOf(that: LiteralStart): Boolean =
-      this.column <= that.column
-
-    def below(that: LiteralStart): Boolean = this.line > that.line
-
-    def toRightOrBelow(that:LiteralStart): Boolean =
-      (this toRightOf that) || (this below that)
-  }
-
-  def getPositions(i: Indented, currentLine: Int, currentColumn: Int): List[LiteralStart] = i match {
-    case Indented.Empty => Nil
-    case Indented.Literal(head, tail) =>
-      LiteralStart(currentLine,currentColumn, head) ::
-      getPositions(tail, currentLine, currentColumn + head.length)
-    case Indented.Newline(level, body) =>
-      getPositions(body, currentLine + 1, level)
-  }
-
-  def positions(i: Indented): List[LiteralStart] = getPositions(i,0,0)
-
-  def literals(i: Indented): List[String] = positions(i).map(_.literal)
-
-  def render(i: Indentable): Indented = Render(i)
-  
-  // GENERATORS //
+  //////////////////////////////////////////////////////////////////////////////
+  // GENERATORS:
 
   val rawBase: Gen[Indentable] =
     Gen.oneOf( Indentable.Empty, Indentable.SoftBreak, Indentable.HardBreak)
 
   val genSafeLine: Gen[String] = for {
     str <- Gen.listOf(Gen.oneOf(allowedChars))
-  } yield str.mkString("").take(80)
+  } yield str.mkString("")
 
   val rawLiteral: Gen[Indentable] = for {
     str <- if (fullUnicode) arbitrary[String] else genSafeLine
@@ -178,15 +80,15 @@ object TestIndentable extends Properties("Indentable") {
                   )
   
   def genIndentable: Gen[Indentable] = for {
-    i <- rawIndentable(6)
-  } yield addPrefix(i,"")
+    i <- rawIndentable(8)
+  } yield uniqueLiterals(i)
   implicit val arbIndentable: Arbitrary[Indentable] = Arbitrary(genIndentable)
 
   //////////////////////////////////////////////////////////////////////////////
-  // TESTS:
+  // PROPERTIES:
 
   property("Text removes all newlines") = Prop.forAll { (i: String) =>
-    literals(render(Indentable.Text(i))) forall { l => !l.contains("\n") }
+    literals( Indentable.Text(i) ) forall { l => !l.literal.contains("\n") }
   }
 
   property("Text renders as itself") = Prop.forAll { (i: String) =>
@@ -197,61 +99,56 @@ object TestIndentable extends Properties("Indentable") {
     render( Indentable.Empty ).asString == ""
   }
 
-  property("++ satisfies semantics") = Prop.forAll { (l: Indentable, r: Indentable) =>
-    // we use unique prefixes to indentify which `Indentable` literals come from
-    val ll = addPrefix(l,"L")
-    val rr = addPrefix(r,"R")
-    val kk = ll ++ rr
-    val lpos = positions( render(kk) ).filter(x => x.literal.startsWith("L"))
-    val rpos = positions( render(kk) ).filter(x => x.literal.startsWith("R"))
-    rpos forall { r => lpos forall {l => r toRightOrBelow l} }
+  property("++ satisfies semantics") = Prop.forAll { (left: Indentable, right: Indentable) =>
+    // we ensure unique prefixes
+    val ll = addPrefix(left,"L")
+    val rr = addPrefix(right,"R")
+    val leftLiterals = literals(ll).map(_.literal)
+    val rightLiterals = literals(rr).map(_.literal)
+    val result = ll ++ rr
+    val resultLeftLiterals = literals(result).filter(x => leftLiterals contains x.literal)
+    val resultRightLiterals = literals(result).filter(x => rightLiterals contains x.literal)
+    resultRightLiterals forall { r =>
+      resultLeftLiterals.forall(l => r toRightOrBelow l)
+    }
   }
 
   property("++ associative") = Prop.forAll { (a: Indentable, b: Indentable, c: Indentable) =>
     render(a ++ (b ++ c)).toString == render((a ++ b) ++ c).toString
   }
   
-  property(">> satisfies semantics") = Prop.forAll { (l: Indentable, r: Indentable) =>
-    // we use unique prefixes to indentify which `Indentable` literals come from
-    val ll = addPrefix(l,"L")
-    val rr = addPrefixNonneg(r,"R")
-    val kk = ll >> rr
-    val lpos = positions( render(kk) ).filter(x => x.literal.startsWith("L")).lastOption
-    val rpos = positions( render(kk) ).filter(x => x.literal.startsWith("R"))
-    val result = lpos match {
+  property(">> satisfies forward semantics") = Prop.forAll { (left: Indentable, right: Indentable) =>
+    // we ensure unique prefixes
+    val ll = addPrefix( removeNonforward(left),"L")
+    val rr = addPrefix( removeNonforward(right), "R")
+    val leftLiterals = literals(ll).map(_.literal)
+    val rightLiterals = literals(rr).map(_.literal)
+    val result = ll >> rr
+    val resultLeftLiterals = literals(result).filter(x => leftLiterals contains x.literal)
+    val resultRightLiterals = literals(result).filter(x => rightLiterals contains x.literal)
+    lastOfLastLine(ll) match {
       case None => true
-      case Some(l) => rpos forall { r => r toRightOf l }
+      case Some(l) => resultRightLiterals forall { r => r toRightOf l }
     }
-    if (!result) {
-      println("L## " + render(ll).asString)
-      println("R## " + render(rr).asString)
-      println("K## " + render(kk).asString)
-    }
-    if (!result) {
-      println("L#### " + ll)
-      println("R#### " + rr)
-      println("K#### " + kk)
-    }
-    result
   }
-  
-  property("<< satisfies semantics") = Prop.forAll { (l: Indentable, r: Indentable) =>
-    // we use unique prefixes to indentify which `Indentable` literals come from
-    val ll = addPrefixNonstrain(l,"L")
-    val rr = addPrefix(r,"R")
-    val kk = ll << rr
-    val lpos = positions( render(kk) ).filter(x => x.literal.startsWith("L"))
-    val rpos = positions( render(kk) ).filter(x => x.literal.startsWith("R")).headOption
-    val result = rpos match {
-      case None => true
-      case Some(r) => lpos forall { l => l toLeftOf r }
-    }
-    result
+
+  property("<< satisfies forward semantics") = Prop.forAll { (left: Indentable, right: Indentable) =>
+    // we ensure unique prefixes
+    val ll = addPrefix( removeNonforward(left),"L")
+    val rr = addPrefix( removeNonforward(right), "R")
+    val leftLiterals = literals(ll).map(_.literal)
+    val rightLiterals = literals(rr).map(_.literal)
+    val result = ll << rr
+    val resultLeftLiterals = literals(result).filter(x => leftLiterals contains x.literal)
+    val resultRightLiterals = literals(result).filter(x => rightLiterals contains x.literal)
+    (for {
+      l <- firstOfLastLine(ll)
+      r <- firstOfFirstLine(rr)
+    } yield (l toLeftOf r)) getOrElse true
   }
 
   property("equality reflexive") = Prop.forAll { (i: Indentable) =>
     i == i
   }
-
 
 }
