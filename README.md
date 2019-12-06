@@ -1,9 +1,9 @@
 # indent-primitives
-Scala primitives for autoindentors based on Wadler/Leijen
+Scala primitives for an Isabelle autoindentor inspired by Wadler/Leijen.
 
 ## Usage
 
-Execute `sbt run`.
+To see an example, execute `sbt run`. To run the test suite, use `sbt test`.
 
 ## Contributing
 
