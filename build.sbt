@@ -2,7 +2,7 @@ lazy val root = (project in file(".")).
   settings(
     name := "indentor",
     version := "0.1.0",
-    scalaVersion := "2.13.1",
+    scalaVersion := "2.12.7",
     mainClass in Compile := Some("indentor.Main")
   )
 
