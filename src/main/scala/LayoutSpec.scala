@@ -74,7 +74,7 @@ object LayoutSpec {
 
   /** Constructs a `LayoutSpec` from the given literal `String`, replacing newline
     * characters with `LayoutSpec.HardBreak`s. */
-  def Text(from: String): LayoutSpec = from.split("\n").toList match {
+  def TextLiteral(from: String): LayoutSpec = from.split("\n").toList match {
     case Nil => Empty
     case (x :: xs) =>
       xs.foldLeft(Literal(x).asInstanceOf[LayoutSpec])(_ ++ HardBreak ++ Literal(_))

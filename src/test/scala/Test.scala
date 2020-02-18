@@ -50,7 +50,7 @@ object TestLayoutSpec extends Properties("LayoutSpec") {
 
   val rawLiteral: Gen[LayoutSpec] = for {
     str <- if (fullUnicode) arbitrary[String] else genSafeLine
-  } yield LayoutSpec.Text(str take 80)
+  } yield LayoutSpec.TextLiteral(str take 80)
 
   def rawLevel(depth: Int): Gen[LayoutSpec] = for {
     level <- Gen.choose(-5,5)
@@ -87,12 +87,12 @@ object TestLayoutSpec extends Properties("LayoutSpec") {
   //////////////////////////////////////////////////////////////////////////////
   // PROPERTIES:
 
-  property("Text removes all newlines") = Prop.forAll { (i: String) =>
-    literals( LayoutSpec.Text(i) ) forall { l => !l.literal.contains("\n") }
+  property("TextLiteral removes all newlines") = Prop.forAll { (i: String) =>
+    literals( LayoutSpec.TextLiteral(i) ) forall { l => !l.literal.contains("\n") }
   }
 
-  property("Text renders as itself") = Prop.forAll { (i: String) =>
-    render( LayoutSpec.Text(i) ).asString == i
+  property("TextLiteral renders as itself") = Prop.forAll { (i: String) =>
+    render( LayoutSpec.TextLiteral(i) ).asString == i
   }
   
   property("Empty renders as the empty string") = Prop {
