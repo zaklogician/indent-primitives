@@ -21,7 +21,7 @@ object Render {
   def render(width: Int, currentColumn: Int, pipeline: Pipeline): Layout = pipeline match {
     case Nil => Layout.Empty
     case (State(currentLevel,target) :: rest) => target match {
-      case LayoutSpec.Empty => Layout.Empty
+      case LayoutSpec.Empty => render(width, currentColumn, rest)
       case LayoutSpec.SoftBreak => {
         if (currentColumn > width)
            render(width, currentColumn, State(currentLevel,LayoutSpec.HardBreak) :: rest)
